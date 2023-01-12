@@ -6,15 +6,23 @@ import android.os.Build
 import android.os.Bundle
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.RecyclerView.LayoutManager
 import com.azmetov.playlistmaker.App
 import com.azmetov.playlistmaker.R
 import com.azmetov.playlistmaker.data.entities.Track
 import com.azmetov.playlistmaker.other.Constants.PLAYER_SHARED_PREFS
 import com.azmetov.playlistmaker.other.Converter.convertTime
 import com.azmetov.playlistmaker.data.shared.SingleTrackSharedStore
+import com.azmetov.playlistmaker.ui.player.*
+import com.azmetov.playlistmaker.ui.recycler.BaseAdapter
+import com.azmetov.playlistmaker.ui.recycler.ListItem
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import org.w3c.dom.Attr
 
 class PlayerActivity : AppCompatActivity() {
 
@@ -29,7 +37,12 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_player)
+        setContentView(R.layout.activity_player2)
+
+        val rv = findViewById<RecyclerView>(R.id.list)
+        val adapter = BaseAdapter()
+        rv.adapter = adapter
+        rv.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
 
         val arrowBack = findViewById<ImageView>(R.id.iv_player_arrow_back)
         arrowBack.setOnClickListener {
@@ -54,7 +67,19 @@ class PlayerActivity : AppCompatActivity() {
                 singleTrackSharedStore.loadFromSharedPrefs()
                     ?: throw RuntimeException("Extra serializable in PlayerActivity can not be null!")
             }
-        bindTrack(track)
+
+        adapter.addItem(ListItem(ImageVHFactory(), ImageBinder(), track.getCoverArtwork()))
+        adapter.addItem(ListItem(TitleVHFactory(), TitleBinder(), Pair(track.trackName, track.artistName)))
+        val playerBinder = PlayerBinder()
+        playerBinder.favoriteClickListener = { position -> Toast.makeText(this, "Click $position", Toast.LENGTH_SHORT).show() }
+        adapter.addItem(ListItem(PlayerVHFactory(), playerBinder, Unit))
+        val attributeFactory = AttributeVHFactory()
+        adapter.addItem(ListItem(attributeFactory, AttributeBinder(), Pair("Длительность", convertTime(track.trackTime))))
+        adapter.addItem(ListItem(attributeFactory, AttributeBinder(), Pair("Альбом", track.collectionName!!)))
+        adapter.addItem(ListItem(attributeFactory, AttributeBinder(), Pair("Год", track.releaseDate!!)))
+        adapter.addItem(ListItem(attributeFactory, AttributeBinder(), Pair("Жанр", track.genre!!)))
+        adapter.addItem(ListItem(attributeFactory, AttributeBinder(), Pair("Страна", track.country!!)))
+        adapter.notifyDataSetChanged()
     }
 
 
